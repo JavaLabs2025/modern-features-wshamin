@@ -31,28 +31,28 @@ class ProjectSystemTest {
 
     @Test
     void testProjectCreationAndTeam() {
-        User manager = userService.register("Manager Bob");
-        User dev = userService.register("Dev John");
+        User manager = userService.register("Manager Viktor");
+        User dev = userService.register("Dev Andrey");
 
-        Project project = projectService.createProject("Enterprise System", manager);
+        Project project = projectService.createProject("Demo project", manager);
         assertEquals(manager, project.manager());
 
         projectService.addDeveloper(project.id(), dev, manager);
         Project p = projectService.getProject(project.id());
         assertTrue(p.developers().stream().anyMatch(d -> d.id().equals(dev.id())));
 
-        User other = userService.register("Other");
+        User other = userService.register("Spy");
         assertThrows(IllegalArgumentException.class, () -> projectService.addDeveloper(project.id(), other, dev));
     }
 
     @Test
     void testMilestoneLifecycle() {
-        User manager = userService.register("Manager");
-        Project project = projectService.createProject("P1", manager);
+        User manager = userService.register("Manager Viktor");
+        Project project = projectService.createProject("Demo project 1", manager);
         LocalDate now = LocalDate.now();
 
-        milestoneService.createMilestone(project.id(), "M1", now, now, manager);
-        milestoneService.createMilestone(project.id(), "M2", now, now, manager);
+        milestoneService.createMilestone(project.id(), "Demo milestone 1", now, now, manager);
+        milestoneService.createMilestone(project.id(), "Demo milestone 2", now, now, manager);
 
         Project p = projectService.getProject(project.id());
         Long m1Id = p.milestones().get(0).id();
@@ -63,7 +63,7 @@ class ProjectSystemTest {
         assertThrows(IllegalStateException.class,
                 () -> milestoneService.updateMilestoneStatus(project.id(), m2Id, MilestoneStatus.ACTIVE, manager));
 
-        User tl = userService.register("TL");
+        User tl = userService.register("Team Lead Kirill");
         projectService.setTeamLead(project.id(), tl, manager);
         ticketService.createTicket(project.id(), m1Id, "Task", "Desc", tl);
 
@@ -73,19 +73,19 @@ class ProjectSystemTest {
 
     @Test
     void testTicketWorkflow() {
-        User manager = userService.register("Mgr");
-        User tl = userService.register("TL");
-        User dev = userService.register("Dev");
+        User manager = userService.register("Manager Viktor");
+        User tl = userService.register("Team Lead Kirill");
+        User dev = userService.register("Dev Andrey");
 
-        Project project = projectService.createProject("P1", manager);
+        Project project = projectService.createProject("Demo project 1", manager);
         projectService.addDeveloper(project.id(), dev, manager);
         projectService.setTeamLead(project.id(), tl, manager);
 
         LocalDate now = LocalDate.now();
-        milestoneService.createMilestone(project.id(), "M1", now, now, manager);
+        milestoneService.createMilestone(project.id(), "Demo milestone 1", now, now, manager);
         Long mId = projectService.getProject(project.id()).milestones().get(0).id();
 
-        ticketService.createTicket(project.id(), mId, "Task 1", "D", tl);
+        ticketService.createTicket(project.id(), mId, "Task 1", "Desc 1", tl);
         Ticket ticket = projectService.getProject(project.id()).milestones().get(0).tickets().get(0);
 
         ticketService.assignTicket(project.id(), mId, ticket.id(), dev, tl);
@@ -93,11 +93,11 @@ class ProjectSystemTest {
         ticketService.updateTicketStatus(project.id(), mId, ticket.id(), TicketStatus.IN_PROGRESS, dev);
         ticketService.updateTicketStatus(project.id(), mId, ticket.id(), TicketStatus.COMPLETED, dev);
 
-        User tester = userService.register("Tester");
+        User tester = userService.register("Tester Vladimir");
         projectService.addTester(project.id(), tester, manager);
         assertThrows(IllegalArgumentException.class,
                 () -> ticketService.updateTicketStatus(project.id(), mId, ticket.id(), TicketStatus.ACCEPTED, tester));
-        ticketService.createTicket(project.id(), mId, "TL Task", "D", manager);
+        ticketService.createTicket(project.id(), mId, "Team Lead Task", "Descr 2", manager);
         Ticket t2 = projectService.getProject(project.id()).milestones().get(0).tickets().get(1);
         ticketService.assignTicket(project.id(), mId, t2.id(), tl, manager);
 
@@ -106,17 +106,17 @@ class ProjectSystemTest {
 
     @Test
     void testBugReportWorkflow() {
-        User manager = userService.register("Mgr");
-        User dev = userService.register("Dev");
-        User tester = userService.register("Tester");
+        User manager = userService.register("Manager Viktor");
+        User dev = userService.register("Dev Andrey");
+        User tester = userService.register("Tester Vladimir");
 
-        Project project = projectService.createProject("P1", manager);
+        Project project = projectService.createProject("Demo project 1", manager);
         projectService.addDeveloper(project.id(), dev, manager);
         projectService.addTester(project.id(), tester, manager);
 
-        bugReportService.createBugReport(project.id(), "Bug 1", "Desc", tester);
+        bugReportService.createBugReport(project.id(), "Bug 1", "Desc 1", tester);
 
-        bugReportService.createBugReport(project.id(), "Bug 2", "Desc", dev);
+        bugReportService.createBugReport(project.id(), "Bug 2", "Desc 2", dev);
 
         Project p = projectService.getProject(project.id());
         assertEquals(2, p.bugReports().size());
@@ -133,11 +133,11 @@ class ProjectSystemTest {
 
     @Test
     void testMultiRole() {
-        User u = userService.register("Multi");
-        Project p1 = projectService.createProject("P1", u);
+        User u = userService.register("User Larisa");
+        Project p1 = projectService.createProject("Demo project 1", u);
 
-        User u2 = userService.register("Other");
-        Project p2 = projectService.createProject("P2", u2);
+        User u2 = userService.register("Spy");
+        Project p2 = projectService.createProject("Demo project 2", u2);
         projectService.addDeveloper(p2.id(), u, u2);
 
         assertEquals(new Role.Manager(), projectService.getUserRole(p1.id(), u.id()));
