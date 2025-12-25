@@ -1,11 +1,14 @@
 package org.lab;
 
-import java.util.concurrent.Executors;
+import java.time.LocalDate;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.lab.service.MilestoneService;
 import org.lab.service.ProjectRepository;
 import org.lab.service.ProjectService;
+import org.lab.service.TicketService;
 import org.lab.service.UserService;
 
 public class Main {
@@ -27,19 +30,37 @@ public class Main {
             executor.submit(() -> {
                 try {
                     System.out.println("Ожидание базы данных...");
-                    ProjectRepository repo = dbInitTask.get();
+                    var repo = dbInitTask.get();
 
                     System.out.println("База данных готова. Приложение запущено");
 
-                    ProjectService service = new ProjectService(repo);
-                    UserService userService = new UserService();
+                    var projectService = new ProjectService(repo);
+                    var userService = new UserService();
+                    var testUser = userService.register("Manager Viktor");
+                    var testProj = projectService.createProject("Viktor's project", testUser);
+                    var testProjId = testProj.id();
+                    System.out.println("Создан проект '" + testProj.name() + "'");
+                    System.out.println("Роль администратора: " + projectService.getRoleDescription(testProj.id(),
+                            testUser.id()));
 
-                    var userAdmin = userService.register("Admin");
-                    var proj = service.createProject("Demo project", userAdmin);
+                    var milestoneService = new MilestoneService(repo);
+                    milestoneService.createMilestone(testProjId,
+                            "First milestone",
+                            LocalDate.now(),
+                            LocalDate.ofYearDay(2026, 2),
+                            testUser);
+                    var firstMilestone = projectService.getProject(testProjId).milestones().getFirst();
+                    var firstMilestoneId = firstMilestone.id();
+                    System.out.println("Создан milestone " + firstMilestone.name());
 
-                    System.out.println("Создан проект '" + proj.name() + "'");
-                    System.out.println("Роль администратора: " + service.getRoleDescription(proj.id(), userAdmin.id()));
-
+                    var ticketService = new TicketService(repo);
+                    ticketService.createTicket(testProjId,
+                            firstMilestoneId,
+                            "First ticket",
+                            "Ticket desc",
+                            testUser);
+                    var firstTicket = projectService.getProject(testProjId).milestones().getFirst().tickets().getFirst();
+                    System.out.println("Создан ticket " + firstTicket.title());
                 } catch (ExecutionException | InterruptedException e) {
                     System.err.println("Ошибка в приложении: " + e.getMessage());
                 }
